@@ -135,4 +135,42 @@ public class Matrix {
         }
         return result;
     }
+
+    public Matrix divide(Complex number) {
+        Matrix result = new Matrix(size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                result.data[i][j] = this.data[i][j].divide(number);
+            }
+        }
+
+        return result;
+    }
+
+    public Matrix divide(Matrix other) {
+        Complex determinant = other.determinant();
+        if (determinant.getReal() == 0 && determinant.getImaginary() == 0) {
+            throw new IllegalArgumentException("Determinant can not be 0!");
+        }
+
+        Matrix temp = new Matrix(size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+
+                Complex minorDeterminant = other.minor(i, j).determinant();
+
+                if ((i + j) % 2 == 0) {
+                    temp.data[i][j] = minorDeterminant;
+                } else {
+                    temp.data[i][j] = new Complex(0, 0).sub(minorDeterminant);
+                }
+            }
+        }
+
+        Matrix result = temp.transpose().divide(determinant);
+
+        return this.multiply(result);
+    }
 }
