@@ -1,0 +1,12 @@
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/DataType.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/Table.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/Row.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/TableSchema.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/storage/StorageManager.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/MusicDatabaseSchema.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/Column.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/Condition.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/DatabaseEngine.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/Database.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/core/DefaultDatabaseEngine.java
+/home/bidmybl/Code/HSE/Java/java_labs_with_friends/HSE_Java_Labs/lab2/src/main/java/com/team/dbms/storage/JsonStorageManager.java

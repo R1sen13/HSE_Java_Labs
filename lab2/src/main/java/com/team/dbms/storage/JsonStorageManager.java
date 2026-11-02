@@ -1,0 +1,64 @@
+package com.team.dbms.storage;
+
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+import com.team.dbms.core.Database;
+import java.io.*;
+import java.lang.reflect.Type;
+import java.nio.file.*;
+import java.time.LocalDate;
+
+public class JsonStorageManager implements StorageManager {
+    private final Path file;
+    private final Gson gson;
+
+    public JsonStorageManager(String filename) {
+        this.file = Paths.get(filename);
+        this.gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDate.class, new JsonSerializer<LocalDate>() {
+                public JsonElement serialize(LocalDate src, Type t, JsonSerializationContext c) {
+                    return new JsonPrimitive(src.toString());
+                }
+            })
+            .registerTypeAdapter(LocalDate.class, new JsonDeserializer<LocalDate>() {
+                public LocalDate deserialize(JsonElement json, Type t, JsonDeserializationContext c) {
+                    return LocalDate.parse(json.getAsString());
+                }
+            })
+            .setPrettyPrinting()
+            .create();
+    }
+
+    public Database load() {
+        if (!Files.exists(file)) return new Database();
+        try (Reader reader = Files.newBufferedReader(file)) {
+            Database db = gson.fromJson(reader, Database.class);
+            return db == null ? new Database() : db;
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot load database", e);
+        }
+    }
+
+    public void save(Database database) {
+        Path absolute = file.toAbsolutePath();
+        Path parent = absolute.getParent();
+
+        try {
+            if (parent != null) Files.createDirectories(parent);
+            Path temp = absolute.resolveSibling(absolute.getFileName() + ".tmp");
+
+            try (Writer writer = Files.newBufferedWriter(temp)) {
+                gson.toJson(database, writer);
+            }
+
+            try {
+                Files.move(temp, absolute, StandardCopyOption.REPLACE_EXISTING,
+                           StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, absolute, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot save database", e);
+        }
+    }
+}
