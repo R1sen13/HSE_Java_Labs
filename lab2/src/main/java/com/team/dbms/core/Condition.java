@@ -19,6 +19,8 @@ public class Condition {
     }
 
     public String getColumn() { return column; }
+    public Operator getOperator() { return operator; }
+    public Object getValue() { return value; }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public boolean matches(Row row) {

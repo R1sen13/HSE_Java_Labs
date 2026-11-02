@@ -3,6 +3,8 @@ package com.team.dbms.core;
 import java.util.*;
 
 public interface DatabaseEngine {
+    TableSchema getSchema(String tableName);
+    void createIndex(String name, String table, String column);
     void createTable(TableSchema schema);
     void dropTable(String tableName);
     void insert(String tableName, List<Row> rows);

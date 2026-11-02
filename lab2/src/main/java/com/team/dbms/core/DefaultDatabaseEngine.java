@@ -10,6 +10,20 @@ public class DefaultDatabaseEngine implements DatabaseEngine {
     public DefaultDatabaseEngine(StorageManager storage) {
         this.storage = storage;
         this.database = storage.load();
+        this.database.getIndexManager();
+    }
+
+    public TableSchema getSchema(String name) { return table(name).getSchema(); }
+
+    public void createIndex(String name, String table, String column) {
+        database.getIndexManager().create(name, table, column);
+        try {
+            storage.save(database);
+        } catch (RuntimeException e) {
+            database.getIndexDefinitions().removeIf(d -> d.getName().equalsIgnoreCase(name));
+            database.getIndexManager().rebuild();
+            throw e;
+        }
     }
 
     private Table table(String name) {
@@ -61,7 +75,7 @@ public class DefaultDatabaseEngine implements DatabaseEngine {
     public void insert(String name, List<Row> rows) {
         Table target = table(name);
         List<Row> backup = new ArrayList<>();
-        for (Row r : target.getRows()) backup.add(new Row(r.getValues()));
+        backup.addAll(target.getRows());
 
         try {
             for (Row row : rows) {
@@ -75,8 +89,7 @@ public class DefaultDatabaseEngine implements DatabaseEngine {
             }
             storage.save(database);
         } catch (RuntimeException e) {
-            target.getRows().clear();
-            target.getRows().addAll(backup);
+            target.restoreRows(backup);
             throw e;
         }
     }
@@ -87,10 +100,16 @@ public class DefaultDatabaseEngine implements DatabaseEngine {
 
     public int update(String name, Map<String, Object> values, Condition condition) {
         Table target = table(name);
-        int count = target.update(values, condition);
-        for (Row row : target.getRows()) validateForeignKeys(target, row);
-        storage.save(database);
-        return count;
+        List<Row> backup = new ArrayList<>(target.getRows());
+        try {
+            int count = target.update(values, condition);
+            for (Row row : target.getRows()) validateForeignKeys(target, row);
+            storage.save(database);
+            return count;
+        } catch (RuntimeException e) {
+            target.restoreRows(backup);
+            throw e;
+        }
     }
 
     public int delete(String name, Condition condition) {
@@ -113,8 +132,14 @@ public class DefaultDatabaseEngine implements DatabaseEngine {
             }
         }
 
-        int count = target.delete(condition);
-        storage.save(database);
-        return count;
+        List<Row> backup = new ArrayList<>(target.getRows());
+        try {
+            int count = target.delete(condition);
+            storage.save(database);
+            return count;
+        } catch (RuntimeException e) {
+            target.restoreRows(backup);
+            throw e;
+        }
     }
 }

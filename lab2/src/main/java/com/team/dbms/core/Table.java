@@ -1,12 +1,43 @@
 package com.team.dbms.core;
 
 import java.util.*;
+import com.team.dbms.index.HashIndex;
 
 public class Table {
     private TableSchema schema;
     private List<Row> rows = new ArrayList<>();
 
+    private transient Map<String, HashIndex> indexes = new LinkedHashMap<>();
+
     public Table() {}
+
+    public void registerIndex(HashIndex index) {
+        indexes.put(index.getColumn().toLowerCase(Locale.ROOT), index);
+    }
+
+    public HashIndex getIndex(String column) {
+        return indexes.get(column.toLowerCase(Locale.ROOT));
+    }
+
+    public void clearIndexes() { indexes.clear(); }
+
+    public void restoreRows(List<Row> backup) {
+        rows = new ArrayList<>(backup);
+        List<String> columns = new ArrayList<>(indexes.keySet());
+        indexes.clear();
+        for (String name : columns) {
+            HashIndex index = new HashIndex(schema.getColumn(name));
+            for (Row row : rows) index.add(row);
+            registerIndex(index);
+        }
+    }
+
+    /** Gson deserializes Object numbers as Double; restore schema types first. */
+    public void restoreTypes() {
+        List<Row> normalized = new ArrayList<>();
+        for (Row row : rows) normalized.add(normalize(row));
+        rows = normalized;
+    }
 
     public Table(TableSchema schema) {
         this.schema = schema;
@@ -24,6 +55,7 @@ public class Table {
                 throw new IllegalArgumentException("Duplicate primary key: " + key);
 
         rows.add(normalized);
+        for (HashIndex index : indexes.values()) index.add(normalized);
     }
 
     private Row normalize(Row input) {
@@ -49,7 +81,15 @@ public class Table {
 
     public List<Row> select(List<String> columns, Condition condition) {
         List<Row> result = new ArrayList<>();
-        for (Row row : rows) {
+        Iterable<Row> candidates = rows;
+        if (condition != null && condition.getOperator() == Condition.Operator.EQ) {
+            Column column = schema.getColumn(condition.getColumn());
+            HashIndex index = getIndex(condition.getColumn());
+            // Only use keys with exactly the same semantics as Condition.matches.
+            if (index != null && canUseIndex(column, condition.getValue()))
+                candidates = index.find(condition.getValue());
+        }
+        for (Row row : candidates) {
             if (condition != null && !condition.matches(row)) continue;
 
             if (columns == null || columns.isEmpty()) {
@@ -67,13 +107,23 @@ public class Table {
         return result;
     }
 
+    private boolean canUseIndex(Column column, Object value) {
+        if (value == null) return true;
+        try {
+            return column.getType().convert(value).equals(value);
+        } catch (IllegalArgumentException e) {
+            // Direct API conditions historically allow cross-type comparisons.
+            return false;
+        }
+    }
+
     public int update(Map<String, Object> values, Condition condition) {
         for (String key : values.keySet())
             if (schema.getColumn(key) == null)
                 throw new IllegalArgumentException("Unknown column: " + key);
 
         List<Row> backup = new ArrayList<>();
-        for (Row row : rows) backup.add(new Row(row.getValues()));
+        backup.addAll(rows);
 
         try {
             int count = 0;
@@ -83,7 +133,7 @@ public class Table {
 
                 Row changed = new Row(row.getValues());
                 for (Map.Entry<String, Object> e : values.entrySet())
-                    changed.set(e.getKey(), e.getValue());
+                    changed.set(schema.getColumn(e.getKey()).getName(), e.getValue());
 
                 rows.set(i, normalize(changed));
                 count++;
@@ -94,16 +144,30 @@ public class Table {
                 if (!keys.add(row.get(schema.getPrimaryKey().getName())))
                     throw new IllegalArgumentException("Duplicate primary key");
 
+            for (int i = 0; i < rows.size(); i++) {
+                Row oldRow = backup.get(i);
+                Row newRow = rows.get(i);
+                // Unchanged rows retain their original objects.
+                if (oldRow != newRow)
+                    for (HashIndex index : indexes.values()) index.replace(oldRow, newRow);
+            }
             return count;
         } catch (RuntimeException e) {
-            rows = backup;
+            restoreRows(backup);
             throw e;
         }
     }
 
     public int delete(Condition condition) {
         int before = rows.size();
-        rows.removeIf(row -> condition == null || condition.matches(row));
+        Iterator<Row> iterator = rows.iterator();
+        while (iterator.hasNext()) {
+            Row row = iterator.next();
+            if (condition == null || condition.matches(row)) {
+                iterator.remove();
+                for (HashIndex index : indexes.values()) index.remove(row);
+            }
+        }
         return before - rows.size();
     }
 }

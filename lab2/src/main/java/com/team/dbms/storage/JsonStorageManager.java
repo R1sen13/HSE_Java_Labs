@@ -3,6 +3,7 @@ package com.team.dbms.storage;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.team.dbms.core.Database;
+import com.team.dbms.core.Table;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.file.*;
@@ -33,7 +34,10 @@ public class JsonStorageManager implements StorageManager {
         if (!Files.exists(file)) return new Database();
         try (Reader reader = Files.newBufferedReader(file)) {
             Database db = gson.fromJson(reader, Database.class);
-            return db == null ? new Database() : db;
+            if (db == null) return new Database();
+            for (Table table : db.getTables().values()) table.restoreTypes();
+            db.getIndexManager();
+            return db;
         } catch (IOException e) {
             throw new RuntimeException("Cannot load database", e);
         }
