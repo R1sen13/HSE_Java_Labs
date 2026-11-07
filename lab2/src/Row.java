@@ -1,5 +1,3 @@
-package com.team.dbms.core;
-
 import java.util.*;
 
 public class Row {

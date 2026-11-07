@@ -1,5 +1,3 @@
-package com.team.dbms.core;
-
 public class Column {
     private String name;
     private DataType type;

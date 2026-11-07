@@ -1,5 +1,3 @@
-package com.team.dbms.core;
-
 import java.time.LocalDate;
 
 public enum DataType {
@@ -10,11 +8,18 @@ public enum DataType {
         try {
             switch (this) {
                 case INTEGER:
-                    if (value instanceof Number) return ((Number) value).intValue();
+                    if (value instanceof Number) {
+                        double number = ((Number) value).doubleValue();
+                        if (!Double.isFinite(number) || number != Math.rint(number) ||
+                            number < Integer.MIN_VALUE || number > Integer.MAX_VALUE)
+                            throw new IllegalArgumentException("Invalid integer: " + value);
+                        return ((Number) value).intValue();
+                    }
                     return Integer.parseInt(value.toString());
                 case DOUBLE:
-                    if (value instanceof Number) return ((Number) value).doubleValue();
-                    return Double.parseDouble(value.toString());
+                    double number = Double.parseDouble(value.toString());
+                    if (!Double.isFinite(number)) throw new IllegalArgumentException("Invalid double: " + value);
+                    return number;
                 case STRING:
                     return value.toString();
                 case DATE:

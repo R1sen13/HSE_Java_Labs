@@ -1,15 +1,10 @@
-package com.team.dbms.storage;
-
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
-import com.team.dbms.core.Database;
-import com.team.dbms.core.Table;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.file.*;
 import java.time.LocalDate;
 
-public class JsonStorageManager implements StorageManager {
+public class JsonStorageManager {
     private final Path file;
     private final Gson gson;
 
@@ -33,10 +28,19 @@ public class JsonStorageManager implements StorageManager {
     public Database load() {
         if (!Files.exists(file)) return new Database();
         try (Reader reader = Files.newBufferedReader(file)) {
-            Database db = gson.fromJson(reader, Database.class);
-            if (db == null) return new Database();
+            JsonObject json = gson.fromJson(reader, JsonObject.class);
+            if (json == null) throw new IllegalArgumentException("Empty database file");
+            for (java.util.Map.Entry<String, JsonElement> entry : json.getAsJsonObject("tables").entrySet()) {
+                JsonObject table = entry.getValue().getAsJsonObject();
+                if (table.has("schema")) {
+                    JsonObject schema = table.remove("schema").getAsJsonObject();
+                    table.add("name", schema.get("name"));
+                    table.add("columns", schema.get("columns"));
+                }
+            }
+            Database db = gson.fromJson(json, Database.class);
             for (Table table : db.getTables().values()) table.restoreTypes();
-            db.getIndexManager();
+            db.validateReferences();
             return db;
         } catch (IOException e) {
             throw new RuntimeException("Cannot load database", e);
