@@ -30,3 +30,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Java build output ###
+*.class
+target/
+build/
