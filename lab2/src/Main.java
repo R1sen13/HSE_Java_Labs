@@ -1,6 +1,5 @@
 import java.util.*;
 
-/** Консольная точка входа MusicDB. */
 public class Main {
     public static void main(String[] args) {
         String filename = args.length == 0 ? "data/music.json" : args[0];

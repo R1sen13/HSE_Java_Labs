@@ -1,4 +1,3 @@
-/** Описание столбца таблицы и его ограничений. */
 public class Column {
     private String name;
     private DataType type;

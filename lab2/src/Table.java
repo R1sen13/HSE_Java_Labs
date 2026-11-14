@@ -1,7 +1,5 @@
 import java.util.*;
 
-/** Типизированная таблица со строками, первичным ключом и индексами. */
-
 public class Table {
     private String name;
     private List<Column> columns;
@@ -59,6 +57,7 @@ public class Table {
         indexes = new HashMap<>();
         List<Row> saved = new ArrayList<>(rows);
         rows.clear();
+        rebuildIndexes();
         for (Row row : saved) insert(row);
         rebuildIndexes();
     }
@@ -88,7 +87,6 @@ public class Table {
     private void addToIndexes(Row row) {
         for (String column : indexedColumns) {
             Object value = row.get(column);
-            if (value == null) continue;
             Map<Object, List<Row>> index = indexes.get(column.toLowerCase(Locale.ROOT));
             index.computeIfAbsent(value, key -> new ArrayList<>()).add(row);
         }

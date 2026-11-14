@@ -1,6 +1,5 @@
 import java.time.LocalDate;
 
-/** Поддерживаемые типы данных и их преобразование из SQL-значений. */
 public enum DataType {
     INTEGER, DOUBLE, STRING, DATE, BOOLEAN;
 

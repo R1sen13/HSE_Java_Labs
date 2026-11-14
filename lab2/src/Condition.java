@@ -1,6 +1,5 @@
 import java.util.*;
 
-/** Одно сравнение значения в условии WHERE. */
 public class Condition {
     public enum Operator { EQ, NE, GT, LT, GE, LE }
 

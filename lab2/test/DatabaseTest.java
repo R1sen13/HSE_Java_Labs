@@ -194,15 +194,15 @@ class DatabaseTest {
     void insertWithoutColumnListUsesTableOrder() {
         Database db = database("insert-without-columns.json");
         QueryParser parser = new QueryParser();
-        parser.execute("CREATE TABLE cars (id INTEGER PRIMARY KEY, brand STRING, price DOUBLE, active BOOLEAN);", db);
+        parser.execute("CREATE TABLE artists (id INTEGER PRIMARY KEY, name STRING, score DOUBLE, active BOOLEAN);", db);
 
         assertEquals(1, parser.execute(
-            "INSERT INTO cars VALUES (1, 'Toyota', 25000.0, TRUE);", db));
+            "INSERT INTO artists VALUES (1, 'Dora', 8.5, TRUE);", db));
 
-        Row row = db.select("cars", null, null).get(0);
+        Row row = db.select("artists", null, null).get(0);
         assertEquals(1, row.get("id"));
-        assertEquals("Toyota", row.get("brand"));
-        assertEquals(25000.0, row.get("price"));
+        assertEquals("Dora", row.get("name"));
+        assertEquals(8.5, row.get("score"));
         assertEquals(true, row.get("active"));
     }
 
@@ -239,6 +239,29 @@ class DatabaseTest {
         parser.execute("DELETE FROM songs WHERE id = 1;", db);
         assertEquals(0, db.select("songs", null,
             new Condition("artist", Condition.Operator.EQ, "B")).size());
+    }
+
+    @Test
+    void indexPreservesNullEqualityAfterCrudAndReload() {
+        Database db = database("index-null.json");
+        QueryParser parser = new QueryParser();
+        parser.execute("CREATE TABLE items (id INTEGER PRIMARY KEY, name STRING);", db);
+        parser.execute("INSERT INTO items VALUES (1, NULL), (2, 'A');", db);
+        Condition isNull = new Condition("name", Condition.Operator.EQ, null);
+        assertEquals(1, db.select("items", null, isNull).size());
+        parser.execute("CREATE INDEX items_name ON items(name);", db);
+        assertEquals(1, db.select("items", null, isNull).size());
+        parser.execute("INSERT INTO items VALUES (3, NULL);", db);
+        assertEquals(2, db.select("items", null, isNull).size());
+        parser.execute("UPDATE items SET name = NULL WHERE id = 2;", db);
+        assertEquals(3, db.select("items", null, isNull).size());
+        parser.execute("DELETE FROM items WHERE id = 1;", db);
+        Database loaded = database("index-null.json");
+        assertEquals(2, loaded.select("items", null, isNull).size());
+        parser.execute("UPDATE items SET name = 'B' WHERE id = 2;", loaded);
+        List<Row> remaining = loaded.select("items", null, isNull);
+        assertEquals(1, remaining.size());
+        assertEquals(3, remaining.get(0).get("id"));
     }
 
     @Test

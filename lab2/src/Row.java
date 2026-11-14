@@ -1,6 +1,5 @@
 import java.util.*;
 
-/** Значения одной записи с нечувствительными к регистру именами столбцов. */
 public class Row {
     private Map<String, Object> values = new LinkedHashMap<>();
 
