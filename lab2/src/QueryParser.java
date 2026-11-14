@@ -102,9 +102,15 @@ public class QueryParser {
     private Object insert(Database database) {
         expect("INTO");
         String table = identifier();
-        expect("(");
-        List<String> columns = columns();
-        expect(")");
+        List<String> columns;
+        if (take("(")) {
+            columns = columns();
+            expect(")");
+        } else {
+            columns = new ArrayList<>();
+            for (Column column : database.getTable(table).getColumns())
+                columns.add(column.getName());
+        }
         expect("VALUES");
         List<Row> rows = new ArrayList<>();
         do {

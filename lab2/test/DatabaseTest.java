@@ -191,6 +191,22 @@ class DatabaseTest {
     }
 
     @Test
+    void insertWithoutColumnListUsesTableOrder() {
+        Database db = database("insert-without-columns.json");
+        QueryParser parser = new QueryParser();
+        parser.execute("CREATE TABLE cars (id INTEGER PRIMARY KEY, brand STRING, price DOUBLE, active BOOLEAN);", db);
+
+        assertEquals(1, parser.execute(
+            "INSERT INTO cars VALUES (1, 'Toyota', 25000.0, TRUE);", db));
+
+        Row row = db.select("cars", null, null).get(0);
+        assertEquals(1, row.get("id"));
+        assertEquals("Toyota", row.get("brand"));
+        assertEquals(25000.0, row.get("price"));
+        assertEquals(true, row.get("active"));
+    }
+
+    @Test
     void indexFindsRowsByEqualityAndSurvivesReload() {
         Database db = database("index.json");
         QueryParser parser = new QueryParser();
