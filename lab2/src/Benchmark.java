@@ -1,5 +1,6 @@
 import java.util.*;
 
+/** Простейшее сравнение выборки с индексом и без него. */
 public class Benchmark {
     public static void main(String[] args) {
         int[] sizes = {1000, 10000, 100000};

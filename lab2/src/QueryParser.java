@@ -2,6 +2,8 @@ import java.util.*;
 import java.util.*;
 import java.util.regex.*;
 
+/** Разбирает и выполняет поддерживаемое SQL-подобное подмножество. */
+
 public class QueryParser {
     private static final Pattern TOKEN = Pattern.compile(
         "\\s*('(?:[^']|'')*'|[a-zA-Z_][a-zA-Z0-9_]*|[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?|>=|<=|<>|!=|[=<>(),*;])");

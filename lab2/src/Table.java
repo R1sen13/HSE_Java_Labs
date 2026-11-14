@@ -1,5 +1,7 @@
 import java.util.*;
 
+/** Типизированная таблица со строками, первичным ключом и индексами. */
+
 public class Table {
     private String name;
     private List<Column> columns;

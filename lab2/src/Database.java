@@ -1,5 +1,7 @@
 import java.util.*;
 
+/** Координатор таблиц, CRUD-операций, ограничений и сохранения базы. */
+
 public class Database {
     private Map<String, Table> tables = new LinkedHashMap<>();
     private transient JsonStorageManager storage;

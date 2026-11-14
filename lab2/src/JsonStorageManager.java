@@ -4,6 +4,8 @@ import java.lang.reflect.Type;
 import java.nio.file.*;
 import java.time.LocalDate;
 
+/** Загружает и атомарно сохраняет базу в JSON-файл. */
+
 public class JsonStorageManager {
     private final Path file;
     private final Gson gson;
