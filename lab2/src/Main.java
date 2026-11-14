@@ -2,10 +2,28 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        String filename = args.length == 0 ? "data/music.json" : args[0];
+        String filename = "data/music.json";
+        String mode = null;
+        boolean hasFilename = false;
+        for (String arg : args) {
+            if (arg.equals("--demo") || arg.equals("--empty")) {
+                if (mode != null) {
+                    System.err.println("Choose only one mode: --demo or --empty");
+                    return;
+                }
+                mode = arg;
+            } else if (arg.startsWith("--") || hasFilename) {
+                System.err.println("Usage: Main [database.json] [--demo | --empty]");
+                return;
+            } else {
+                filename = arg;
+                hasFilename = true;
+            }
+        }
+        JsonStorageManager storage = new JsonStorageManager(filename);
         Database database;
         try {
-            database = new Database(new JsonStorageManager(filename));
+            database = new Database(storage);
         } catch (RuntimeException e) {
             System.err.println("Cannot open database: " + e.getMessage());
             return;
@@ -13,6 +31,20 @@ public class Main {
         QueryParser parser = new QueryParser();
         System.out.println("MusicDB. One command per line. HELP for examples, EXIT to quit.");
         try (Scanner input = new Scanner(System.in, "UTF-8")) {
+            if (database.getTables().isEmpty()) {
+                if (mode == null) mode = chooseMode(input);
+                if ("--demo".equals(mode)) {
+                    try {
+                        database = DemoDatabase.create(storage);
+                        System.out.println("Demo database loaded: 3 artists and 6 songs.");
+                    } catch (RuntimeException e) {
+                        System.err.println("Cannot create demo database: " + e.getMessage());
+                        return;
+                    }
+                }
+            } else if ("--demo".equals(mode)) {
+                System.out.println("Existing database opened; demo data was not added.");
+            }
             while (true) {
                 if (System.console() != null) System.out.print("db> ");
                 if (!input.hasNextLine()) break;
@@ -32,6 +64,17 @@ public class Main {
                     System.out.println("Error: " + e.getMessage());
                 }
             }
+        }
+    }
+
+    private static String chooseMode(Scanner input) {
+        while (true) {
+            System.out.println("Choose database: 1 - ready-made music demo, 2 - empty database (default).");
+            if (!input.hasNextLine()) return "--empty";
+            String choice = input.nextLine().trim();
+            if (choice.equals("1")) return "--demo";
+            if (choice.isEmpty() || choice.equals("2")) return "--empty";
+            System.out.println("Enter 1 or 2.");
         }
     }
 

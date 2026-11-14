@@ -59,7 +59,8 @@
 
 | Компонент | Назначение |
 |---|---|
-| `Main` | консольный цикл и табличный вывод |
+| `Main` | выбор начальной базы, консольный цикл и табличный вывод |
+| `DemoDatabase` | создание готового музыкального примера в пустом хранилище |
 | `QueryParser` | токенизация и разбор SQL-подобных команд |
 | `Database` | таблицы, внешние ключи, операции и сохранение |
 | `Table` | схема, строки, CRUD, первичный ключ и индексы |
@@ -72,6 +73,9 @@
 classDiagram
     Main --> QueryParser : SQL
     Main --> Database
+    Main --> DemoDatabase : готовый пример
+    DemoDatabase --> QueryParser
+    DemoDatabase --> JsonStorageManager
     QueryParser --> Database : выполняет команды
     Database "1" *-- "0..*" Table
     Database --> JsonStorageManager : сохраняет и загружает
@@ -139,12 +143,43 @@ java -cp "target/classes;путь/к/gson-2.10.1.jar" Main
 
 В Linux/macOS вместо `;` используется `:`. Можно также запустить `Main.main` из IDE. По умолчанию используется `data/music.json`; другой путь передаётся первым аргументом.
 
+## Готовая музыкальная база по выбору
+
+Если база пустая, при запуске можно выбрать `1` для готового примера или `2` (либо Enter) для пустой базы. Выбор работает также при запуске из IDE. Существующая база открывается без вопроса и повторного наполнения.
+
+Для запуска без вопроса используйте флаг:
+
+```bash
+java -cp "target/classes;путь/к/gson-2.10.1.jar" Main --demo
+java -cp "target/classes;путь/к/gson-2.10.1.jar" Main --empty
+java -cp "target/classes;путь/к/gson-2.10.1.jar" Main data/demo.json --demo
+```
+
+В macOS/Linux разделитель classpath - `:`. Для передачи SQL через стандартный ввод в пустую базу укажите `--empty`, чтобы пропустить выбор. Флаг `--empty` открывает существующие данные, если они есть; он не очищает файл. Флаг `--demo` также не заменяет существующие таблицы. Чтобы получить отдельный готовый пример, укажите новый путь, например `data/demo.json`.
+
+Готовый пример содержит таблицы `artists` (3 исполнителя) и `songs` (6 записей песен), связанные через `songs.artist_id REFERENCES artists(id)`. В `artists` добавлены Дора, Тёмный принц и madk1d; страна - Россия. Песни добавлены для двух последних исполнителей:
+
+| Исполнитель | Песни |
+|---|---|
+| Тёмный принц | Malo 2.0; ты че обиделась; Jealous |
+| madk1d | ДИНАСТИЯ; 8 миля; так по*** |
+
+Поля `collaborators` и `popularity_rank` содержат соисполнителей и позицию в выбранной тройке. Название `так по***` сохранено в написании источника. Это первые три позиции списков популярных треков MusicTracker по данным Яндекс Музыки, проверенные 14.11.2026: [Тёмный принц](https://musictracker.ru/artist/ym-23300354), [madk1d](https://musictracker.ru/artist/ym-13992820). Рейтинг зависит от площадки и времени; программа хранит этот набор, а не обновляет чарт онлайн.
+
+При создании готового примера автоматически создаётся индекс `songs.artist_id`. Данные сначала собираются в памяти и сохраняются одним вызовом хранилища. После запуска можно выполнять:
+
+```sql
+SELECT * FROM artists;
+SELECT title, collaborators FROM songs WHERE artist_id = 2;
+SELECT title FROM songs WHERE artist_id = 3;
+```
+
 ## Команды
 
 ```sql
 CREATE TABLE artists (id INTEGER PRIMARY KEY, name STRING NOT NULL, country STRING, active BOOLEAN);
 CREATE TABLE albums (id INTEGER PRIMARY KEY, artist_id INTEGER REFERENCES artists(id), title STRING NOT NULL, released DATE);
-INSERT INTO artists VALUES (1, 'Dora', 'USA', TRUE);
+INSERT INTO artists VALUES (1, 'Дора', 'Россия', TRUE);
 INSERT INTO artists (id, name) VALUES (2, 'O''Brien');
 INSERT INTO albums (id, artist_id, title, released) VALUES (1, 1, 'First', '2026-01-01');
 SELECT * FROM artists;
@@ -163,7 +198,7 @@ EXIT
 Для `INSERT` поддерживаются оба варианта:
 
 ```sql
-INSERT INTO artists VALUES (1, 'Dora', 'USA', TRUE);
+INSERT INTO artists VALUES (1, 'Дора', 'Россия', TRUE);
 INSERT INTO artists (id, name) VALUES (2, 'O''Brien');
 ```
 
@@ -177,13 +212,15 @@ INSERT INTO artists (id, name) VALUES (2, 'O''Brien');
 
 ## Тестирование
 
+`test/DemoDatabaseTest.java` проверяет наполнение готовой базы, выбор режима запуска, сохранение изменений и защиту существующих данных.
+
 `test/DatabaseTest.java` проверяет CRUD, типы данных, SQL-команды, первичный и внешний ключи, сохранение/загрузку, откат после ошибок и жизненный цикл индексов.
 
 ```bash
 mvn clean test
 ```
 
-Результат проверки 14.11.2026 (Zulu OpenJDK 8u452, Maven 3.9.9): **BUILD SUCCESS**, тестов - **14**, ошибок - **0**, падений - **0**, пропущенных - **0**.
+Результат проверки 14.11.2026 (Zulu OpenJDK 8u452, Maven 3.9.9): **BUILD SUCCESS**, тестов - **18**, ошибок - **0**, падений - **0**, пропущенных - **0**.
 
 Для производительности есть `src/Benchmark.java`. Он сравнивает 100 запросов равенства для 1 000, 10 000 и 100 000 строк:
 
