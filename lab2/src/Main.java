@@ -36,7 +36,9 @@ public class Main {
                 if ("--demo".equals(mode)) {
                     try {
                         database = DemoDatabase.create(storage);
-                        System.out.println("Demo database loaded: 3 artists and 6 songs.");
+                        System.out.println("Demo database loaded: " +
+                            database.getTable("artists").getRows().size() + " artists and " +
+                            database.getTable("songs").getRows().size() + " songs.");
                     } catch (RuntimeException e) {
                         System.err.println("Cannot create demo database: " + e.getMessage());
                         return;

@@ -12,14 +12,19 @@ public final class DemoDatabase {
             "CREATE TABLE songs (id INTEGER PRIMARY KEY, artist_id INTEGER REFERENCES artists(id), " +
                 "title STRING NOT NULL, collaborators STRING, popularity_rank INTEGER);",
             "INSERT INTO artists VALUES (1, 'Дора', 'Россия', TRUE), " +
-                "(2, 'Тёмный принц', 'Россия', TRUE), (3, 'madk1d', 'Россия', TRUE);",
+                "(2, 'Тёмный принц', 'Россия', TRUE), (3, 'madk1d', 'Россия', TRUE), " +
+                "(4, 'Серёга Пират', 'Россия', TRUE);",
             "INSERT INTO songs VALUES " +
                 "(1, 2, 'Malo 2.0', 'ЕГОР КРИД, OG Buda, Toxi$, Мэйби Бэйби, Baby Cute, Дора, madk1d', 1), " +
                 "(2, 2, 'ты че обиделась', 'madk1d', 2), " +
                 "(3, 2, 'Jealous', '9mice, ЕГОР КРИД, madk1d', 3), " +
                 "(4, 3, 'ДИНАСТИЯ', 'VILLIAN', 1), " +
                 "(5, 3, '8 миля', 'VILLIAN', 2), " +
-                "(6, 3, 'так по***', NULL, 3);",
+                "(7, 4, 'Мой байк', NULL, NULL), " +
+                "(8, 4, 'Тп на аме', NULL, NULL), " +
+                "(9, 4, 'Гимн Дахака', NULL, NULL), " +
+                "(10, 4, 'Маша', NULL, NULL), " +
+                "(11, 4, 'Я не пойду с тобой гулять', NULL, NULL);",
             "CREATE INDEX songs_artist ON songs(artist_id);"
         };
         for (String command : commands) parser.execute(command, demo);
