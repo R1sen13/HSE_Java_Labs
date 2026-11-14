@@ -189,4 +189,49 @@ class DatabaseTest {
         db.insert("artists", Collections.singletonList(new Row().set("id", 2)));
         assertEquals(2, database("old.json").select("artists", null, null).size());
     }
+
+    @Test
+    void indexFindsRowsByEqualityAndSurvivesReload() {
+        Database db = database("index.json");
+        QueryParser parser = new QueryParser();
+        parser.execute("CREATE TABLE songs (id INTEGER PRIMARY KEY, artist STRING);", db);
+        parser.execute("INSERT INTO songs (id, artist) VALUES (1, 'A'), (2, 'B'), (3, 'A');", db);
+        assertEquals("Index created", parser.execute("CREATE INDEX songs_artist ON songs(artist);", db));
+        assertEquals(2, db.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "A")).size());
+
+        Database loaded = database("index.json");
+        assertEquals(Arrays.asList("artist"), loaded.getTable("songs").getIndexedColumns());
+        assertEquals(2, loaded.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "A")).size());
+    }
+
+    @Test
+    void indexIsUpdatedAfterInsertUpdateAndDelete() {
+        Database db = database("index-crud.json");
+        QueryParser parser = new QueryParser();
+        parser.execute("CREATE TABLE songs (id INTEGER PRIMARY KEY, artist STRING);", db);
+        parser.execute("CREATE INDEX songs_artist ON songs(artist);", db);
+        parser.execute("INSERT INTO songs (id, artist) VALUES (1, 'A');", db);
+        assertEquals(1, db.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "A")).size());
+        parser.execute("UPDATE songs SET artist = 'B' WHERE id = 1;", db);
+        assertEquals(0, db.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "A")).size());
+        assertEquals(1, db.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "B")).size());
+        parser.execute("DELETE FROM songs WHERE id = 1;", db);
+        assertEquals(0, db.select("songs", null,
+            new Condition("artist", Condition.Operator.EQ, "B")).size());
+    }
+
+    @Test
+    void duplicateIndexIsRejected() {
+        Database db = database("duplicate-index.json");
+        QueryParser parser = new QueryParser();
+        parser.execute("CREATE TABLE songs (id INTEGER PRIMARY KEY, title STRING);", db);
+        parser.execute("CREATE INDEX songs_title ON songs(title);", db);
+        assertThrows(IllegalArgumentException.class,
+            () -> parser.execute("CREATE INDEX another_name ON songs(title);", db));
+    }
 }

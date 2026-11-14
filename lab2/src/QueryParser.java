@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.*;
 import java.util.regex.*;
 
 public class QueryParser {
@@ -32,6 +33,7 @@ public class QueryParser {
     }
 
     private Object create(Database database) {
+        if (take("INDEX")) return createIndex(database);
         expect("TABLE");
         String table = identifier();
         expect("(");
@@ -73,6 +75,18 @@ public class QueryParser {
         end();
         database.createTable(new Table(table, columns));
         return "Table created";
+    }
+
+    private Object createIndex(Database database) {
+        identifier();
+        expect("ON");
+        String table = identifier();
+        expect("(");
+        String column = identifier();
+        expect(")");
+        end();
+        database.createIndex(table, column);
+        return "Index created";
     }
 
     private Object select(Database database) {

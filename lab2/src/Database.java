@@ -37,6 +37,18 @@ public class Database {
         }
     }
 
+    public void createIndex(String tableName, String columnName) {
+        Table table = getTable(tableName);
+        List<String> backup = new ArrayList<>(table.getIndexedColumns());
+        try {
+            table.createIndex(columnName);
+            save();
+        } catch (RuntimeException e) {
+            table.restoreIndexes(backup);
+            throw e;
+        }
+    }
+
     public void dropTable(String name) {
         Table target = getTable(name);
         for (Table table : tables.values()) {

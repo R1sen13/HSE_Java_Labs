@@ -4,6 +4,8 @@ public class Table {
     private String name;
     private List<Column> columns;
     private List<Row> rows = new ArrayList<>();
+    private List<String> indexedColumns = new ArrayList<>();
+    private transient Map<String, Map<Object, List<Row>>> indexes = new HashMap<>();
 
     public Table(String name, List<Column> columns) {
         this.name = name;
@@ -30,6 +32,7 @@ public class Table {
     public String getName() { return name; }
     public List<Column> getColumns() { return Collections.unmodifiableList(columns); }
     public List<Row> getRows() { return Collections.unmodifiableList(rows); }
+    public List<String> getIndexedColumns() { return Collections.unmodifiableList(indexedColumns); }
 
     public Column getColumn(String name) {
         for (Column column : columns)
@@ -45,13 +48,48 @@ public class Table {
 
     public void restoreRows(List<Row> backup) {
         rows = new ArrayList<>(backup);
+        rebuildIndexes();
     }
 
     public void restoreTypes() {
         validateSchema();
+        if (indexedColumns == null) indexedColumns = new ArrayList<>();
+        indexes = new HashMap<>();
         List<Row> saved = new ArrayList<>(rows);
         rows.clear();
         for (Row row : saved) insert(row);
+        rebuildIndexes();
+    }
+
+    public void createIndex(String columnName) {
+        Column column = getColumn(columnName);
+        String name = column.getName();
+        for (String existing : indexedColumns)
+            if (existing.equalsIgnoreCase(name))
+                throw new IllegalArgumentException("Index already exists: " + name);
+        indexedColumns.add(name);
+        rebuildIndexes();
+    }
+
+    public void restoreIndexes(List<String> columns) {
+        indexedColumns = new ArrayList<>(columns);
+        rebuildIndexes();
+    }
+
+    private void rebuildIndexes() {
+        if (indexes == null) indexes = new HashMap<>();
+        indexes.clear();
+        for (String column : indexedColumns) indexes.put(column.toLowerCase(Locale.ROOT), new HashMap<>());
+        for (Row row : rows) addToIndexes(row);
+    }
+
+    private void addToIndexes(Row row) {
+        for (String column : indexedColumns) {
+            Object value = row.get(column);
+            if (value == null) continue;
+            Map<Object, List<Row>> index = indexes.get(column.toLowerCase(Locale.ROOT));
+            index.computeIfAbsent(value, key -> new ArrayList<>()).add(row);
+        }
     }
 
     private Row normalize(Row input) {
@@ -80,14 +118,20 @@ public class Table {
             if (Objects.equals(row.get(key), normalized.get(key)))
                 throw new IllegalArgumentException("Duplicate primary key: " + normalized.get(key));
         rows.add(normalized);
+        addToIndexes(normalized);
     }
 
     public List<Row> select(List<String> selected, Condition condition) {
         condition = normalizeCondition(condition);
         if (selected != null)
             for (String column : selected) getColumn(column);
+        Collection<Row> source = rows;
+        if (condition != null && condition.getOperator() == Condition.Operator.EQ && indexes != null) {
+            Map<Object, List<Row>> index = indexes.get(condition.getColumn().toLowerCase(Locale.ROOT));
+            if (index != null) source = index.getOrDefault(condition.getValue(), Collections.emptyList());
+        }
         List<Row> result = new ArrayList<>();
-        for (Row row : rows) {
+        for (Row row : source) {
             if (condition != null && !condition.matches(row)) continue;
             Row copy = new Row();
             if (selected == null || selected.isEmpty()) {
@@ -121,6 +165,7 @@ public class Table {
             changedRows.add(changed);
         }
         rows = changedRows;
+        rebuildIndexes();
         return count;
     }
 
@@ -132,6 +177,7 @@ public class Table {
             Row row = iterator.next();
             if (condition == null || condition.matches(row)) iterator.remove();
         }
+        rebuildIndexes();
         return before - rows.size();
     }
 }
